@@ -26,7 +26,7 @@ function [ maxGap ] = TubeShapeExam( design, manufactory)
         dMat(:,:,jj) = eye(4,4);
         for ii = rowYBC : -1 : jj 
             dMat(:,:,jj) = dMat(:,:,jj) * dtrsf(:,:,ii);
-        end
+        end	
     end
 	dxyz = xyzSection(dMat, dspts, depts);
 	
