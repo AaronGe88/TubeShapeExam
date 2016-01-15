@@ -1,5 +1,10 @@
 import numpy as np
 import scipy.optimize
+import tube_window as tw
+import pyglet
+from pyglet.gl import *
+
+SIZE = 800
 def ybc_2_xyz(ybc, r):
 	y= ybc[:, 0]
 	row = ybc.shape[0]
@@ -16,17 +21,18 @@ def ybc_2_xyz(ybc, r):
 
 	"""得到变换矩阵0"""
 	mat = np.zeros([4,4,row])
-	trsf = mat_transfer(np.column_stack([ybc,r]))
-
+	trsf = mat_transfer(np.concatenate([ybc,\
+										r.T],\
+										axis = 1 ))
+	#print(trsf[:,:,0])
 	#print(trsf_0[:,:,0],"\n",trsf_1[:,:,0])
 	for jj in range(row):
 		mat[:,:,jj] = np.eye(4)
 		for ii in range(row - 1, jj - 1, -1):
 			#print(jj,ii)
 			mat[:,:,jj] = np.dot(mat[:,:,jj], trsf[:,:,ii])
-	#print(mat0[:,:,0])
+	#print(mat[1,:,:])
 	xyz = trans_2_xyz(mat, st_pts, end_pts)
-	#print(xyz0[:,:,0])
 	return xyz
 	
 def tube_shape_exam(ybc0, ybc1, r):
@@ -34,11 +40,12 @@ def tube_shape_exam(ybc0, ybc1, r):
 
 	xyz0 = ybc_2_xyz(ybc0,r)
 	xyz1 = ybc_2_xyz(ybc1,r)
+	#print(xyz0[:,:,-1],"\n",xyz1[:,:,-1])
 	x0 = [0.,0.,0.,0.,0.,0.]
 	res = scipy.optimize.minimize(opt_problem, x0, \
 								args = [xyz0,xyz1,row], \
 								method='Nelder-Mead')
-	print(res.x)
+	#print(res.x)
 	
 	xyz_mod = np.zeros([2,4,row])
 	matr = rotate_move(res.x[0:3],res.x[3:6])	
@@ -55,6 +62,20 @@ def tube_shape_exam(ybc0, ybc1, r):
 	for ii in range(row):
 		gap = gap + np.sum(np.sqrt(np.sum(diff[:,:,ii],axis = 1)))
 	print(gap)
+	"""Display"""
+	caption = "Shape Exam"
+	width = height = SIZE
+	resizable = True
+	try:
+		config = Config(sample_buffers=1, samples=4, depth_size=16,
+				double_buffer=True)
+		window = tw.TubeWindows(width, height, caption=caption, config=config,
+				resizable=resizable)
+	except pyglet.window.NoSuchConfigException:
+		window = tw.TubeWindows(width, height, caption=caption,
+				resizable=resizable)
+	window.set_cylinders(xyz0, xyz_mod,r[0],row)
+	pyglet.app.run()
 	return gap
 	
 def mat_transfer(ybcr):
@@ -106,16 +127,16 @@ def mat_transfer(ybcr):
 	#print("tr",transfer[:,:,0])
 	return transfer
 	
-def trans_2_xyz(mat_transfer, st_pts, end_pts):
+def trans_2_xyz(transfer, st_pts, end_pts):
 	row = st_pts.shape[0]
 	seg = np.zeros([2,4,row])
 	for ii in range(row):
 		#print(mat_transfer[:,:,ii],"\n",st_pts[ii,:])
-		seg[0,:,ii] = np.dot(mat_transfer[:,:,ii],\
+		seg[0,:,ii] = np.dot(transfer[:,:,ii],\
 							st_pts[ii,:].T)
-		seg[1,:,ii] = np.dot(mat_transfer[:,:,ii],\
+		seg[1,:,ii] = np.dot(transfer[:,:,ii],\
 							end_pts[ii,:].T)
-		
+	
 	return seg
 
 def fit_line(xyz):
@@ -233,7 +254,7 @@ def opt_problem(p,args):
 	angle = p[0:3]
 	move = p[3:6]
 	matr = rotate_move(angle,move)	
-	#print(xyz0.shape)
+
 	xyz1_mod = np.zeros([2,4,row])
 	for ii in range(row):
 		start = xyz1[0,:,ii]
@@ -250,14 +271,18 @@ def opt_problem(p,args):
 	return gap
 	
 	
-ybc0 = np.array([[20,10,45],\
+ybc0 = np.array([[20,10,92],\
 				[20,10,45],\
-				[30,0,0]])
+				[30,90,92],\
+				[30,90,92],\
+				[50,0,0]])
 
-ybc1 = np.array([[20,12,44],\
-				[19.5,9.9,46],
-				[31,0,0]])
+ybc1 = np.array([[20,12,90],\
+				[19.5,9.9,46],\
+				[31,90,90],\
+				[31,90,90],\
+				[52,0,0]])
 			
-r = np.array([10,10,10])
+r = np.array([[10,10,10,10,10]])
 
 tube_shape_exam(ybc0,ybc1,r)
