@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.optimize
+import scipy.integrate
 import tube_window as tw
 import pyglet
 from pyglet.gl import *
@@ -21,6 +22,7 @@ def ybc_2_xyz(ybc, r):
 
 	"""得到变换矩阵0"""
 	mat = np.zeros([4,4,row])
+	#print(r, ybc.shape)
 	trsf = mat_transfer(np.concatenate([ybc,\
 										r.T],\
 										axis = 1 ))
@@ -61,7 +63,7 @@ def tube_shape_exam(ybc0, ybc1, r):
 	gap = 0.
 	for ii in range(row):
 		gap = gap + np.sum(np.sqrt(np.sum(diff[:,:,ii],axis = 1)))
-	print(gap)
+	#print(gap)
 	"""Display"""
 	caption = "Shape Exam"
 	width = height = SIZE
@@ -74,9 +76,9 @@ def tube_shape_exam(ybc0, ybc1, r):
 	except pyglet.window.NoSuchConfigException:
 		window = tw.TubeWindows(width, height, caption=caption,
 				resizable=resizable)
-	window.set_cylinders(xyz0, xyz_mod,r[0],row)
+	window.set_cylinders(xyz0, xyz_mod,8,row)
 	pyglet.app.run()
-	return gap
+	return xyz0, xyz_mod
 	
 def mat_transfer(ybcr):
 	row = ybcr.shape[0]
@@ -142,7 +144,7 @@ def trans_2_xyz(transfer, st_pts, end_pts):
 def fit_line(xyz):
 	vectors = xyz[0,0:3,:] - xyz[1,0:3,:]
 	row = xyz.shape[2]
-	
+
 	line = np.zeros([row + 1, 3])
 	line[0,:] = xyz[0,0:3,0]
 	for ii in range(row - 1):
@@ -154,29 +156,29 @@ def fit_line(xyz):
 		y1 = xyz[1,1,ii + 1]
 		z1 = xyz[1,2,ii + 1]
 		
-		m0 = vectors[0,0,ii]
-		m1 = vectors[0,0,ii + 1]
-		n0 = vectors[0,1,ii]
-		n1 = vectors[0,1,ii + 1]
-		p0 = vectors[0,2,ii]
-		p1 = vectors[0,2,ii+1]
+		m0 = vectors[0,ii]
+		m1 = vectors[0,ii + 1]
+		n0 = vectors[1,ii]
+		n1 = vectors[1,ii + 1]
+		p0 = vectors[2,ii]
+		p1 = vectors[2,ii+1]
 		
-		A0 = np.linalg.det([n0, p0],\
-							[n1,p1])
-		B0 = np.linalg.det([p0,m0],\
-							[p1,m1])
-		C0 = np.linalg.det([m0,n0],
-							[m1,n1])
-		A1 = np.linalg.det([n1,B0],\
-							[p1,C0])
-		B1 = np.linalg.det([p1,C0],\
-							[m1,A0])
-		C1 = np.linalg.det([m1,A0],\
-							[n1,B0])
+		A0 = np.linalg.det([[n0, p0],\
+							[n1,p1]])
+		B0 = np.linalg.det([[p0,m0],\
+							[p1,m1]])
+		C0 = np.linalg.det([[m0,n0],
+							[m1,n1]])
+		A1 = np.linalg.det([[n1,B0],\
+							[p1,C0]])
+		B1 = np.linalg.det([[p1,C0],\
+							[m1,A0]])
+		C1 = np.linalg.det([[m1,A0],\
+							[n1,B0]])
 							
-		delta0 = np.linalg.det([A0,B0,C0],\
+		delta0 = np.linalg.det([[A0,B0,C0],\
 								[A1,B1,C1],\
-								[n0,-m0,0])
+								[n0,-m0,0]])
 		D0 = A1 * (x1 - x0) + \
 			B1 * (y1 - y0) + \
 			C1 * (z1 - z0)
@@ -185,28 +187,29 @@ def fit_line(xyz):
 		Gz = z0 + D0 * (A0 * m0 + B0 * n0) / delta0
 			
 		A2 = n0 * C0 + \
-			p0 * np.linalg.det([m0,p0],[m1,p1])
+			p0 * np.linalg.det([[m0,p0],[m1,p1]])
 		B2 = p0 * A0 + \
-			m0 * np.linalg.det([n0,m0],[n1,m1])
+			m0 * np.linalg.det([[n0,m0],[n1,m1]])
 		C2 = m0 * B0 + \
-			n0 * np.linalg.det([p0,n0],[p1,n1])
+			n0 * np.linalg.det([[p0,n0],[p1,n1]])
 		
-		delta1 = n1 * np.linalg.det([B0,C0],[B2,C2]) + \
-				m1 * np.linalg.det([A0,C0],[A2,C2])
+		delta1 = n1 * np.linalg.det([[B0,C0],[B2,C2]]) + \
+				m1 * np.linalg.det([[A0,C0],[A2,C2]])
 		D1 = A2 * (x0 - x1) + \
 			B2 * (y0 - y1) + \
 			C2 * (z0 - z1)
 		
 		Hx = x1 - D1 * m1 * C0 / delta1
 		Hy = y1 - D1 * n1 * C0 / delta1
-		Hz = z2 + D2 * (A0 * m1 + B0 * n1) / delta1
+		Hz = z1 + D1 * (A0 * m1 + B0 * n1) / delta1
 		
 		line[ii + 1,:] = np.array([(Gx + Hx)/2,\
 						(Gy + Hy)/2, \
 						(Gz + Hz)/2])
-	line[row,:] = xyz[1,0:3,row]
+	line[row,:] = xyz[1,0:3,row-1]
+	return line
 		
-		
+
 		
 def rotate_move(angles, moves):
 	angles = angles * np.pi / 180.
@@ -271,18 +274,18 @@ def opt_problem(p,args):
 	return gap
 	
 	
-ybc0 = np.array([[20,10,92],\
-				[20,10,45],\
-				[30,90,92],\
-				[30,90,92],\
-				[50,0,0]])
+# ybc0 = np.array([[20,10,92],\
+				# [20,10,45],\
+				# [30,90,92],\
+				# [30,90,92],\
+				# [50,0,0]])
 
-ybc1 = np.array([[20,12,90],\
-				[19.5,9.9,46],\
-				[31,90,90],\
-				[31,90,90],\
-				[52,0,0]])
+# ybc1 = np.array([[20,12,90],\
+				# [19.5,9.9,46],\
+				# [31,90,90],\
+				# [31,90,90],\
+				# [52,0,0]])
 			
-r = np.array([[10,10,10,10,10]])
+# r = np.array([[10,10,10,10,10]])
 
-tube_shape_exam(ybc0,ybc1,r)
+# tube_shape_exam(ybc0,ybc1,r)

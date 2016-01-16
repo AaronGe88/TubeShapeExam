@@ -77,7 +77,7 @@ class TubeWindows(pyglet.window.Window):
 		self.start1 = xyz1[0,0:3,:].T
 		self.end1 = xyz1[1,0:3,:].T
 		self.radiul = radiul
-		print(radiul)
+		#print(radiul)
 		
 
 	def on_draw(self):
@@ -114,8 +114,8 @@ class TubeWindows(pyglet.window.Window):
 			for start, end in zip(self.start0, self.end0):
 				glPushMatrix()
 				orient = start - end
-				print (start,"\n", end)
-				print("orient", orient)
+				#print (start,"\n", end)
+				#print("orient", orient)
 				distance = np.linalg.norm(orient)
 				#print("dist",distance)
 				norm_orient = orient / distance
@@ -128,8 +128,8 @@ class TubeWindows(pyglet.window.Window):
 				cylinder = gluNewQuadric()
 				gluQuadricNormals(cylinder, GLU_SMOOTH)
 				glColor3ub(0, 255, 0)
-				gluCylinder(cylinder, self.radiul[0] + 0.15,\
-							self.radiul[0] + 0.15, distance, \
+				gluCylinder(cylinder, self.radiul + 0.15,\
+							self.radiul+ 0.15, distance, \
 							24, 24)
 				glPopMatrix()
 				
@@ -151,8 +151,8 @@ class TubeWindows(pyglet.window.Window):
 				cylinder = gluNewQuadric()
 				gluQuadricNormals(cylinder, GLU_SMOOTH)
 				glColor3ub(255, 0, 0)
-				gluCylinder(cylinder, self.radiul[0],\
-							self.radiul[0], distance, \
+				gluCylinder(cylinder, self.radiul,\
+							self.radiul, distance, \
 							24, 24)
 				glPopMatrix()
 		finally:
@@ -176,13 +176,13 @@ class TubeWindows(pyglet.window.Window):
 	def on_text_motion(self, motion): # Rotate about the x or y axis
 		if motion == pyglet.window.key.MOTION_UP:
 			self.xAngle -= ANGLE_INCREMENT
-			self.xAngle = 0 if  self.xAngle  < 0 else self.xAngle
+			self.xAngle = 360 if  self.xAngle  < 0 else self.xAngle
 		elif motion == pyglet.window.key.MOTION_DOWN:
 			self.xAngle += ANGLE_INCREMENT
 			self.xAngle = 0 if self.xAngle > 360 else self.xAngle
 		elif motion == pyglet.window.key.MOTION_LEFT:
 			self.yAngle -= ANGLE_INCREMENT
-			self.yAngle = 0 if  self.yAngle  < 0. else self.yAngle
+			self.yAngle = 360 if  self.yAngle  < 0. else self.yAngle
 		elif motion == pyglet.window.key.MOTION_RIGHT:
 			self.yAngle += ANGLE_INCREMENT
 			self.yAngle = 0 if self.yAngle > 360. else self.yAngle
