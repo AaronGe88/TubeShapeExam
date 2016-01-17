@@ -18,7 +18,7 @@ class TubeExameWindow (QDialog, ui_TEW.Ui_Dialog):
 		self.comboBox_model.addItem(u"生产结果")
 		self.comboBox_model.setCurrentIndex (1)
 		self.comboBox_model.currentIndexChanged.connect(self.model_changed)
-		
+		self.lineEdit_tolerance.setText(str(0.15))
 		self.pushButton_apply.clicked.connect(self.apply_edit)
 		try:
 			self.db = QSqlDatabase.addDatabase(u"QODBC");
@@ -36,6 +36,13 @@ class TubeExameWindow (QDialog, ui_TEW.Ui_Dialog):
 				
 			self.lineEdit_ID.setText(sample_ID)
 			sample_ID = u"".join([u"'",sample_ID,u"'"])
+			uni_query = u"".join([u"select SAMPLE_RADIUS from SAMPLE_BASIC_INFO where SAMPLE_ID =",
+									sample_ID])
+			query = QSqlQuery(uni_query, self.db)
+			while query.next():
+				radial = query.value(0)
+			self.diameter = radial * 2
+			self.lineEdit_diameter.setText(str(self.diameter))
 			
 			self.model_design = QSqlTableModel(self,self.db)
 			self.model_design.setTable(u"YBC_INFO")
@@ -111,6 +118,10 @@ class TubeExameWindow (QDialog, ui_TEW.Ui_Dialog):
 		self.tableView_test.hideColumn (5)
 		
 	def apply_edit(self):
+		try:
+			tolerance = float(self.lineEdit_tolerance.text())
+		except ValueError as e:
+			tolerance = 0.15
 		model = self.tableView_test.model()
 		model.database().transaction()
 		if model.submitAll():
@@ -145,11 +156,11 @@ class TubeExameWindow (QDialog, ui_TEW.Ui_Dialog):
 		else:
 			ybc_test = self.ybc_manu
 			
-		r = np.array([self.ybc_design[:,3].tolist(),])
+		bend_r = np.array([self.ybc_design[:,3].tolist(),])
 		#print(self.ybc_design[:,0:3].shape,r)
 		self.model_gaps = QStandardItemModel(self.tableView_gap)
 		xyz0, xyz_mod = TSE.tube_shape_exam(self.ybc_design[:,0:3], \
-							ybc_test[:,0:3], r)
+							ybc_test[:,0:3], bend_r, self.diameter, tolerance)
 		line0 = TSE.fit_line(xyz0)
 		line_mod = TSE.fit_line(xyz_mod)
 		#print(self.comboBox_model.currentIndex(),ybc_test)
@@ -159,7 +170,7 @@ class TubeExameWindow (QDialog, ui_TEW.Ui_Dialog):
 			str_gaps = ((self.gaps * 100).astype(np.int) / 100)
 			for ii, f in enumerate(str_gaps):
 				self.model_gaps.setItem(0, ii, QStandardItem(str(f)))
-				#print(f)
+					
 				#print(f)
 			self.tableView_gap.setModel(self.model_gaps)
 		except Exception as e:

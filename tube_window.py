@@ -70,13 +70,14 @@ class TubeWindows(pyglet.window.Window):
 		glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE) # 2
 		# 1 & 2 mean that we can use glColor*() to color materials
 	
-	def set_cylinders(self, xyz0, xyz1,radiul,row):
+	def set_cylinders(self, xyz0, xyz1,radiul,row,tolerance):
 		self.start0 = xyz0[0,0:3,:].T
 		self.end0 = xyz0[1,0:3,:].T
 		#print("start", self.start0)
 		self.start1 = xyz1[0,0:3,:].T
 		self.end1 = xyz1[1,0:3,:].T
 		self.radiul = radiul
+		self.tolerance = tolerance
 		#print(radiul)
 		
 
@@ -107,6 +108,7 @@ class TubeWindows(pyglet.window.Window):
 		pass
 
 	def _draw_cylinder(self):
+		tol = self.tolerance
 		glPushMatrix()
 		try:
 			glMatrixMode(GL_MODELVIEW)
@@ -128,8 +130,8 @@ class TubeWindows(pyglet.window.Window):
 				cylinder = gluNewQuadric()
 				gluQuadricNormals(cylinder, GLU_SMOOTH)
 				glColor3ub(0, 255, 0)
-				gluCylinder(cylinder, self.radiul + 0.15,\
-							self.radiul+ 0.15, distance, \
+				gluCylinder(cylinder, self.radiul + tol,\
+							self.radiul+ tol, distance, \
 							24, 24)
 				glPopMatrix()
 				

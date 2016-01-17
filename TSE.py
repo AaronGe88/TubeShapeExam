@@ -37,7 +37,7 @@ def ybc_2_xyz(ybc, r):
 	xyz = trans_2_xyz(mat, st_pts, end_pts)
 	return xyz
 	
-def tube_shape_exam(ybc0, ybc1, r):
+def tube_shape_exam(ybc0, ybc1, r, diameter, tolerance):
 	row = ybc1.shape[0]
 
 	xyz0 = ybc_2_xyz(ybc0,r)
@@ -76,7 +76,7 @@ def tube_shape_exam(ybc0, ybc1, r):
 	except pyglet.window.NoSuchConfigException:
 		window = tw.TubeWindows(width, height, caption=caption,
 				resizable=resizable)
-	window.set_cylinders(xyz0, xyz_mod,8,row)
+	window.set_cylinders(xyz0, xyz_mod,diameter/2, row, tolerance)
 	pyglet.app.run()
 	return xyz0, xyz_mod
 	
